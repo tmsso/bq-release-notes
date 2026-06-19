@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BigQuery Release Notes Explorer</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Background Glows -->
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-container">
+          <svg class="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2005/Atom">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 15.5c-3.59 0-6.5-2.91-6.5-6.5S8.41 5.5 12 5.5s6.5 2.91 6.5 6.5-2.91 6.5-6.5 6.5z" fill="#3b82f6"/>
+            <path d="M12 7c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7zm0 7c-1.38 0-2.5-1.12-2.5-2.5S10.62 9 12 9s2.5 1.12 2.5 2.5S13.38 14 12 14z" fill="#60a5fa"/>
+          </svg>
+        </div>
+        <div>
+          <h1>BigQuery Release Hub</h1>
+          <p class="subtitle">Real-time BigQuery release notes tracker & Tweet composer</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="connection-status" class="status-indicator success">
+          <span class="status-dot"></span>
+          <span class="status-text">Connected</span>
+        </div>
+        <button id="refresh-btn" class="btn btn-primary" title="Refresh Release Notes">
+          <svg class="icon spinner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span class="btn-text">Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Dashboard -->
+    <section class="stats-grid">
+      <div class="stat-card" data-type="all">
+        <div class="stat-value" id="stat-total">-</div>
+        <div class="stat-label">Total Updates</div>
+      </div>
+      <div class="stat-card" data-type="feature">
+        <div class="stat-value text-feature" id="stat-features">-</div>
+        <div class="stat-label">Features</div>
+      </div>
+      <div class="stat-card" data-type="announcement">
+        <div class="stat-value text-announcement" id="stat-announcements">-</div>
+        <div class="stat-label">Announcements</div>
+      </div>
+      <div class="stat-card" data-type="issue">
+        <div class="stat-value text-issue" id="stat-issues">-</div>
+        <div class="stat-label">Issues / Fixes</div>
+      </div>
+      <div class="stat-card" data-type="deprecated">
+        <div class="stat-value text-deprecated" id="stat-deprecated">-</div>
+        <div class="stat-label">Deprecations</div>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <div class="main-layout">
+      <!-- Feed Column -->
+      <main class="feed-column">
+        <!-- Controls: Search & Filters -->
+        <div class="controls-panel">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search release notes by keywords (e.g. Gemini, external, pricing)...">
+            <button id="clear-search" class="clear-btn" style="display: none;">&times;</button>
+          </div>
+          <div class="filter-bar">
+            <span class="filter-label">Filter:</span>
+            <div class="filter-pills">
+              <button class="filter-pill active" data-filter="all">All Types</button>
+              <button class="filter-pill" data-filter="Feature">Features</button>
+              <button class="filter-pill" data-filter="Announcement">Announcements</button>
+              <button class="filter-pill" data-filter="Issue">Issues</button>
+              <button class="filter-pill" data-filter="Deprecated">Deprecations</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feed List -->
+        <div class="feed-container">
+          <div id="feed-loading" class="feed-loading-state">
+            <div class="double-bounce">
+              <div class="bounce1"></div>
+              <div class="bounce2"></div>
+            </div>
+            <p>Fetching the latest release notes from Google Cloud...</p>
+          </div>
+          
+          <div id="feed-error" class="feed-error-state" style="display: none;">
+            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h3>Unable to load updates</h3>
+            <p id="error-message">Connection failed</p>
+            <button id="retry-btn" class="btn btn-secondary">Retry Fetch</button>
+          </div>
+
+          <div id="feed-empty" class="feed-empty-state" style="display: none;">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <h3>No results found</h3>
+            <p>Try adjusting your keyword search or filters</p>
+          </div>
+
+          <div id="releases-timeline" class="timeline">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </main>
+
+      <!-- Sidebar / Composer Column -->
+      <aside class="composer-column sticky-sidebar">
+        <div class="composer-card">
+          <div class="composer-header">
+            <h2>Tweet Composer</h2>
+            <span class="badge badge-compose">Preview</span>
+          </div>
+          
+          <div id="composer-empty-state" class="composer-empty-state">
+            <div class="tweet-bird-bg">
+              <svg viewBox="0 0 24 24" class="bird-svg">
+                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" fill="currentColor"/>
+              </svg>
+            </div>
+            <p>Select any release note in the timeline to compose and customize a tweet about it.</p>
+          </div>
+
+          <div id="composer-active-state" class="composer-active-state" style="display: none;">
+            <div class="selected-details">
+              <div class="selected-meta">
+                <span id="composer-date" class="comp-meta-date">June 17, 2026</span>
+                <span id="composer-badge" class="badge">Feature</span>
+              </div>
+              <p id="composer-original-text" class="comp-orig-text">Original release text snippet...</p>
+            </div>
+
+            <div class="tweet-editor-container">
+              <label for="tweet-textarea" class="field-label">Customize your Tweet</label>
+              <textarea id="tweet-textarea" rows="6" maxlength="280" placeholder="Draft your tweet here..."></textarea>
+              
+              <div class="editor-footer">
+                <span id="char-counter" class="char-counter">0 / 280</span>
+                <button id="reset-tweet-btn" class="btn-text-action" title="Reset tweet to default text">Reset Draft</button>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="action-buttons">
+              <button id="copy-tweet-btn" class="btn btn-secondary">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy Text
+              </button>
+              <a id="tweet-btn" href="#" target="_blank" class="btn btn-twitter">
+                <svg class="icon fill-icon" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="currentColor"/>
+                </svg>
+                Tweet on X
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>Powered by Python Flask & BigQuery Release Notes RSS Feed. Source cached in-memory for performance.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
