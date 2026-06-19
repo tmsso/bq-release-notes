@@ -7,9 +7,15 @@ A lightweight **Flask web application** that fetches, parses, and displays the o
 ## 🚀 Features
 
 - **Live feed** – Fetches the BigQuery Atom/XML release notes feed directly from Google Cloud.
-- **Structured parsing** – Breaks each release entry down by update type (e.g., *Feature*, *Fix*, *Changed*).
-- **In-memory caching** – Responses are cached for 5 minutes to avoid hammering the upstream feed.
-- **Tweet generator** – Each update is pre-formatted as a ≤280-character tweet, ready to share.
+- **Structured parsing** – Breaks each release entry down by update type (e.g., *Feature*, *Fix*, *Changed*, *Deprecated*).
+- **Stats dashboard** – Clickable summary cards showing totals for each update type; clicking filters the timeline.
+- **Keyword search** – Real-time full-text search across update text, type, and date.
+- **Type filters** – Filter pills to narrow the timeline by Features, Announcements, Issues, or Deprecations.
+- **In-memory caching** – Responses are cached for 5 minutes to avoid hammering the upstream feed; falls back gracefully to stale data on errors.
+- **🌗 Dark / Light mode** – Toggle switch in the header swaps the color scheme via CSS root variable overrides; preference is persisted in `localStorage`.
+- **📋 Per-card Copy to Clipboard** – Each update card has a copy icon that copies the plain-text update to the clipboard with visual confirmation.
+- **📥 Export to CSV** – Exports the currently visible (filtered + searched) notes to a UTF-8 CSV file (`bq-release-notes-YYYY-MM-DD.csv`) — compatible with Excel and Google Sheets.
+- **Tweet generator** – Each update is pre-formatted as a ≤280-character tweet, ready to share. The sidebar composer lets you customise the draft and post directly to X.
 - **Force refresh** – Pass `?refresh=true` to the API to bypass the cache on demand.
 
 ---
@@ -20,7 +26,7 @@ A lightweight **Flask web application** that fetches, parses, and displays the o
 |-------|-----------|
 | Backend | Python 3 · Flask |
 | Feed parsing | `urllib` · `xml.etree.ElementTree` · `re` |
-| Frontend | HTML · Jinja2 templates · Vanilla JS/CSS |
+| Frontend | HTML · Jinja2 templates · Vanilla JS · Vanilla CSS |
 
 ---
 
@@ -75,6 +81,20 @@ Open your browser at **http://127.0.0.1:5000**
     }
   ]
 }
+```
+
+---
+
+## 📁 Project Structure
+
+```
+bq-release-notes/
+├── app.py                  ← Flask server: routing, XML parsing, caching
+├── templates/
+│   └── index.html          ← Jinja2 HTML shell + UI structure
+└── static/
+    ├── css/style.css       ← Full UI styling (dark mode, glassmorphism, light mode overrides)
+    └── js/app.js           ← All client logic: state, fetch, render, compose, export
 ```
 
 ---
