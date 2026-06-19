@@ -39,7 +39,12 @@ const elements = {
   charCounter: document.getElementById('char-counter'),
   resetTweetBtn: document.getElementById('reset-tweet-btn'),
   copyTweetBtn: document.getElementById('copy-tweet-btn'),
-  tweetBtn: document.getElementById('tweet-btn')
+  tweetBtn: document.getElementById('tweet-btn'),
+
+  // Toolbar extras
+  themeToggle: document.getElementById('theme-toggle'),
+  toggleTrack: document.getElementById('toggle-track'),
+  exportCsvBtn: document.getElementById('export-csv-btn')
 };
 
 // Initialize Application
@@ -144,6 +149,22 @@ function setupEventListeners() {
       console.error('Could not copy text: ', err);
     });
   });
+
+  // Theme Toggle
+  elements.themeToggle.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-mode');
+    elements.toggleTrack.classList.toggle('active', isLight);
+    localStorage.setItem('bq-theme', isLight ? 'light' : 'dark');
+  });
+
+  // Restore saved theme preference
+  if (localStorage.getItem('bq-theme') === 'light') {
+    document.body.classList.add('light-mode');
+    elements.toggleTrack.classList.add('active');
+  }
+
+  // Export CSV
+  elements.exportCsvBtn.addEventListener('click', exportToCSV);
 }
 
 // Fetch Release Notes
@@ -300,6 +321,12 @@ function renderTimeline() {
             <div class="card-top">
               <span class="badge badge-${update.type}">${update.type}</span>
               <div class="card-actions-inline">
+                <button class="btn-icon-only copy-action" title="Copy update text to clipboard">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </button>
                 <button class="btn-icon-only link-action" title="View Source Release Note" onclick="window.open('${entry.link}', '_blank')">
                   <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -318,6 +345,21 @@ function renderTimeline() {
           </div>
         `;
         
+        // Wire up per-card copy button
+        const copyBtn = updateCard.querySelector('.copy-action');
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(update.text).then(() => {
+            copyBtn.classList.add('copied');
+            const origHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            setTimeout(() => {
+              copyBtn.innerHTML = origHTML;
+              copyBtn.classList.remove('copied');
+            }, 1800);
+          }).catch(() => {});
+        });
+
         // Add event listener to Twitter inline action
         const twBtn = updateCard.querySelector('.twitter-action');
         twBtn.addEventListener('click', (e) => {
@@ -403,4 +445,65 @@ function updateTweetLink(text) {
     elements.tweetBtn.style.pointerEvents = 'auto';
     elements.tweetBtn.setAttribute('href', `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
   }
+}
+
+// Export currently visible (filtered) updates to a CSV file
+function exportToCSV() {
+  const rows = [['Date', 'Type', 'Text', 'Link', 'Tweet Text']];
+
+  state.releases.forEach(entry => {
+    const filteredUpdates = entry.updates.filter(update => {
+      const matchesType = (state.activeFilter === 'all' || update.type === state.activeFilter);
+      const matchesSearch = (!state.searchQuery ||
+        update.type.toLowerCase().includes(state.searchQuery) ||
+        update.text.toLowerCase().includes(state.searchQuery) ||
+        entry.date.toLowerCase().includes(state.searchQuery)
+      );
+      return matchesType && matchesSearch;
+    });
+
+    filteredUpdates.forEach(update => {
+      rows.push([
+        entry.date,
+        update.type,
+        update.text,
+        entry.link,
+        update.tweet_text
+      ]);
+    });
+  });
+
+  if (rows.length === 1) {
+    alert('No visible updates to export. Adjust your filters first.');
+    return;
+  }
+
+  // Build CSV string — escape fields containing commas/quotes/newlines
+  const csvEscape = (val) => {
+    const str = String(val ?? '').replace(/"/g, '""');
+    return /[",\n\r]/.test(str) ? `"${str}"` : str;
+  };
+
+  const csvContent = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `bq-release-notes-${timestamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Visual feedback on the button
+  const btn = elements.exportCsvBtn;
+  const orig = btn.innerHTML;
+  btn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> Exported!`;
+  btn.classList.add('btn-success');
+  setTimeout(() => {
+    btn.innerHTML = orig;
+    btn.classList.remove('btn-success');
+  }, 2000);
 }

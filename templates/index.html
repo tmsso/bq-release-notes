@@ -32,6 +32,14 @@
         </div>
       </div>
       <div class="header-right">
+        <!-- Theme Toggle -->
+        <div class="theme-toggle" id="theme-toggle" title="Toggle light / dark mode">
+          <span class="toggle-icon">🌙</span>
+          <div class="toggle-track" id="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-icon">☀️</span>
+        </div>
         <div id="connection-status" class="status-indicator success">
           <span class="status-dot"></span>
           <span class="status-text">Connected</span>
@@ -92,6 +100,14 @@
               <button class="filter-pill" data-filter="Issue">Issues</button>
               <button class="filter-pill" data-filter="Deprecated">Deprecations</button>
             </div>
+            <button id="export-csv-btn" class="btn btn-export" title="Export visible notes to CSV">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export CSV
+            </button>
           </div>
         </div>
 
